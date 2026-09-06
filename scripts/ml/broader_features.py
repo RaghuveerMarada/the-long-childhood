@@ -26,7 +26,8 @@
 #   data/colonial_global/global_country_table.csv  — colonial origin
 #   data/ajr2001/ajr_n61_country_table.csv   — settler mortality
 #   data/p5v2018.xls                         — Polity 5 institution scores
-#   data/co2_emissions_tonnes_per_person.csv — CO2 per capita
+#   data/co2_emissions_tonnes_per_person.csv — CO2 per capita  [OPTIONAL,
+#       not redistributed; fetch with scripts/ml/fetch_co2.py]
 #
 # Outputs (in-memory): BroaderFeatures().features_at(country, year)
 # =============================================================================
@@ -40,6 +41,7 @@ as a single per-(country, year) feature vector for the panel transformer.
 import json
 import os
 import sys
+import warnings
 import numpy as np
 import pandas as pd
 
@@ -198,8 +200,32 @@ def _load_polity():
 
 
 def _load_co2():
-    """(canonical_country, year) → CO2 per capita (tonnes)."""
-    df = pd.read_csv(os.path.join(DATA, "co2_emissions_tonnes_per_person.csv"))
+    """(canonical_country, year) → CO2 per capita (tonnes).
+
+    OPTIONAL input. The CO2 series enters the feature vector as one
+    non-education control and is the payload of the CO2 placebo test.
+    The file is not redistributed in this repo; run
+    `python scripts/ml/fetch_co2.py` to download it.
+
+    If the file is absent this returns an empty lookup: the
+    co2_per_capita_tonnes column stays NaN and is handled by the same
+    missingness path as every other sparsely observed control, so the
+    ML panel still builds from a clean clone. A RuntimeWarning is
+    raised so the absence is never silent. Callers that need the CO2
+    placebo specifically should check `BroaderFeatures().co2_available`.
+    """
+    path = os.path.join(DATA, "co2_emissions_tonnes_per_person.csv")
+    if not os.path.exists(path):
+        warnings.warn(
+            "data/co2_emissions_tonnes_per_person.csv not found. The CO2 "
+            "control will be all-NaN and the CO2 placebo test is "
+            "unavailable. Run `python scripts/ml/fetch_co2.py` to download "
+            "it (OWID, CC BY 4.0).",
+            RuntimeWarning,
+            stacklevel=2,
+        )
+        return {}
+    df = pd.read_csv(path)
     df["__c"] = df["Country"].map(standardize_country_name)
     df = df.dropna(subset=["__c"])
     out = {}
@@ -234,6 +260,9 @@ class BroaderFeatures:
         self.ajr = _load_ajr()
         self.polity = _load_polity()
         self.co2 = _load_co2()
+        # False when data/co2_emissions_tonnes_per_person.csv is absent.
+        # The CO2 placebo test is not meaningful in that state.
+        self.co2_available = bool(self.co2)
         self.oilrents = _load_wb_json("wb_oilrents.json")
         self.malaria = _load_wb_json("wb_malaria.json")
         self.trade = _load_wb_json("wb_trade.json")

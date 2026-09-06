@@ -1,0 +1,191 @@
+{
+  "method": "Parent-vantage DML (partially linear, GBM nuisances, orthogonal score) under two cross-fitting rules: row-level KFold as shipped in dml_parent.py, and country-level GroupKFold. Standard errors are the analytic DML variance clustered on country, combined across seeds with the across-seed variance of theta. The shipped file's 'theta_ci95' is the 2.5/97.5 percentile of five seed estimates; it is reproduced here as 'seed_percentile_range_NOT_a_ci' and is not a confidence interval.",
+  "why": "Two defects in dml_parent.py. (1) The reported interval is seed dispersion, not sampling uncertainty, so it cannot support the claim that the effect excludes zero. (2) Cross-fitting splits rows rather than countries, so the nuisance models see other years of the same country and the residualisation is optimistic. Both are fixed here and the shipped configuration is retained side by side.",
+  "n_folds": 5,
+  "seeds": [
+    42,
+    43,
+    44,
+    45,
+    46
+  ],
+  "nuisance_learner": {
+    "model": "GradientBoostingRegressor",
+    "n_estimators": 150,
+    "max_depth": 4,
+    "learning_rate": 0.05
+  },
+  "treatment": "mean of the standardised education feature block (wcde_education + bl_education + derived); theta is per one standard-deviation-scale unit of that aggregate index, not per percentage point of completion",
+  "results": {
+    "LE": {
+      "horizon": 12,
+      "n_samples": 1477,
+      "n_countries": 185,
+      "splitters": {
+        "row_kfold": {
+          "theta_per_seed": [
+            5.463724233921331,
+            5.398667177073611,
+            5.062192424309808,
+            5.637070304020249,
+            5.907051064907108
+          ],
+          "theta_mean": 5.493741040846421,
+          "theta_median": 5.463724233921331,
+          "se_clustered_by_country": 1.0571820388280468,
+          "se_unclustered": 0.6618125759938979,
+          "se_across_seeds": 0.31126464237700185,
+          "se_total": 1.1020524219903103,
+          "ci95_clustered": [
+            3.333718293745413,
+            7.65376378794743
+          ],
+          "t_stat": 4.985008817388838,
+          "seed_percentile_range_NOT_a_ci": [
+            5.095839899586188,
+            5.880052988818422
+          ]
+        },
+        "country_groupkfold": {
+          "theta_per_seed": [
+            4.204862240592574,
+            5.1240159676389405,
+            5.18728103704349,
+            5.063349691219874,
+            4.957331211861056
+          ],
+          "theta_mean": 4.907368029671187,
+          "theta_median": 5.063349691219874,
+          "se_clustered_by_country": 1.1610046231066928,
+          "se_unclustered": 0.5597830955830433,
+          "se_across_seeds": 0.4017550879344524,
+          "se_total": 1.2285515396418392,
+          "ci95_clustered": [
+            2.4994070119731826,
+            7.315329047369191
+          ],
+          "t_stat": 3.9944339910247777,
+          "seed_percentile_range_NOT_a_ci": [
+            4.280109137719422,
+            5.180954530103035
+          ]
+        }
+      },
+      "theta_shift_from_country_clustering": -0.5863730111752341
+    },
+    "TFR": {
+      "horizon": 5,
+      "n_samples": 1846,
+      "n_countries": 185,
+      "splitters": {
+        "row_kfold": {
+          "theta_per_seed": [
+            -1.2411492872338374,
+            -1.3246682040689173,
+            -1.3506577326190972,
+            -1.3608069262264852,
+            -1.2756021297399567
+          ],
+          "theta_mean": -1.3105768559776587,
+          "theta_median": -1.3246682040689173,
+          "se_clustered_by_country": 0.15970951257708663,
+          "se_unclustered": 0.09863895570174636,
+          "se_across_seeds": 0.05092033360470428,
+          "se_total": 0.16763057233698442,
+          "ci95_clustered": [
+            -1.6391327777581481,
+            -0.9820209341971693
+          ],
+          "t_stat": -7.818244832708869,
+          "seed_percentile_range_NOT_a_ci": [
+            -1.3597920068657465,
+            -1.2445945714844493
+          ]
+        },
+        "country_groupkfold": {
+          "theta_per_seed": [
+            -0.9726796286153818,
+            -1.0550968624565462,
+            -1.0669332697623823,
+            -1.1684447533524718,
+            -1.117635231562401
+          ],
+          "theta_mean": -1.0761579491498368,
+          "theta_median": -1.0669332697623823,
+          "se_clustered_by_country": 0.19280107162340113,
+          "se_unclustered": 0.08606931952319356,
+          "se_across_seeds": 0.07326944467068473,
+          "se_total": 0.2062538841852012,
+          "ci95_clustered": [
+            -1.4804155621528312,
+            -0.6719003361468424
+          ],
+          "t_stat": -5.217637250329425,
+          "seed_percentile_range_NOT_a_ci": [
+            -1.1633638011734646,
+            -0.9809213519994983
+          ]
+        }
+      },
+      "theta_shift_from_country_clustering": 0.23441890682782196
+    },
+    "U5MR": {
+      "horizon": 12,
+      "n_samples": 1477,
+      "n_countries": 185,
+      "splitters": {
+        "row_kfold": {
+          "theta_per_seed": [
+            -46.75481783646875,
+            -40.272611569009506,
+            -44.488445585996914,
+            -43.445686444634696,
+            -46.34651217286313
+          ],
+          "theta_mean": -44.2616147217946,
+          "theta_median": -44.488445585996914,
+          "se_clustered_by_country": 7.0870551378364715,
+          "se_unclustered": 4.201779463261804,
+          "se_across_seeds": 2.607306872035121,
+          "se_total": 7.551450168788502,
+          "ci95_clustered": [
+            -59.06245705262006,
+            -29.460772390969137
+          ],
+          "t_stat": -5.8613397072705045,
+          "seed_percentile_range_NOT_a_ci": [
+            -46.71398727010819,
+            -40.58991905657202
+          ]
+        },
+        "country_groupkfold": {
+          "theta_per_seed": [
+            -35.31812641232794,
+            -31.902372825631623,
+            -39.19761164724717,
+            -38.97808874356333,
+            -35.379792380769224
+          ],
+          "theta_mean": -36.15519840190786,
+          "theta_median": -35.379792380769224,
+          "se_clustered_by_country": 8.299952098761462,
+          "se_unclustered": 3.790503386267914,
+          "se_across_seeds": 3.0254527608283057,
+          "se_total": 8.834170546788103,
+          "ci95_clustered": [
+            -53.47017267361254,
+            -18.84022413020318
+          ],
+          "t_stat": -4.092653431402572,
+          "seed_percentile_range_NOT_a_ci": [
+            -39.17565935687879,
+            -32.24394818430125
+          ]
+        }
+      },
+      "theta_shift_from_country_clustering": 8.10641631988674
+    }
+  },
+  "total_elapsed_sec": 448.7574255466461,
+  "script": "scripts/ml/chapter9/dml_parent_clustered.py"
+}
