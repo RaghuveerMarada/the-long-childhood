@@ -227,6 +227,27 @@ def run_protocol(panel, protocol, hp, seed, ablate_education=False):
       retrain — how much does education add OVER the alternatives, when
         the model is free to re-optimise without it? This is the
         incremental-value question the paper's prose actually asks.
+
+    WARNING — the retrain arm here is CONFOUNDED and its number should not
+    be quoted as education's substitutability. It keeps the full feature
+    set, including region, latitude, colonial origin and settler mortality,
+    which broader_features.py loads once per country and broadcasts to
+    every year. Their within-country variance is exactly zero, so they
+    carry no within-country signal — but under country-holdout validation
+    they let the model infer a held-out country's outcome from other
+    countries that resemble it, which papers over the missing education
+    block. This arm therefore reports a drop of only ~0.05-0.10.
+
+    Dropping those blocks as COLUMNS (not merely filtering rows) and
+    refitting on the entry-cohort [10%, 90%] window triples the drop, to
+    27.7% (LE) / 25.7% (TFR) / 29.4% (U5MR) — close to the
+    zero-at-inference gate for LE and TFR. See G1_GATE_INVESTIGATION.md
+    §7. That is the number to quote for the fair training-time ablation.
+
+    TODO: add a `--drop-time-invariant` flag that removes the geography,
+    region, colonizer, religion, colonial_binary and settler_mortality
+    groups, so this script reproduces the corrected figure directly
+    instead of pointing at the cloud run.
     """
     X_full = panel["X"]
     if ablate_education:

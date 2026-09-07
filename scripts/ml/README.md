@@ -90,17 +90,52 @@ on the test set, so the reported R² is an optimistic bound.
 carved from training countries only) and reports the gap. Read
 `checkin/leakage_audit.json` before quoting any R² from this directory.
 
-**2. The G1 gate measures reliance, not incremental value.**
+**2. The G1 gate measures reliance, not incremental value — but the
+naive alternative is confounded, so quote the corrected number.**
 
 The shipped gate zeroes the education columns on a model that was
 *trained with them*. That measures how much the fitted model leans on
 those inputs, and zeroing pushes the input off the training manifold, so
-it is an upper bound. It does not measure how much education adds over
-the alternatives, which is what the surrounding prose tends to claim. The
+it is an upper bound on reliance rather than a measure of how much
+education adds over the alternatives. The methodology point stands: the
 question "would a model with no education at all do worse?" requires
-retraining without education. `leakage_audit.py` runs both arms and
-reports them separately. Under heavy collinearity — education is itself
-well predicted by region, latitude, GDP and institutions — the two
-diverge, and the divergence is a fact about the feature set, not a
-refutation of the paper. The within-country identification lives in
-`scripts/residualization/`, not here.
+retraining without education.
+
+**The naive version of that retrain is not the right answer, and this
+file previously said it was.** `leakage_audit.py` runs a
+retrain-without-education arm on the full feature set and reports a drop
+of only 0.05–0.10 against the gate's 0.25–0.40. That number is an
+artefact. Region, latitude, colonial origin and settler mortality are
+loaded **once per country and broadcast to every year**
+(`broader_features.py`, "Time-invariant loaders"), so their
+within-country variance is exactly zero. They cannot explain anything in
+the within-country panel the paper actually runs on. What they *can* do
+is let a country-holdout model infer a never-seen country's outcome from
+other countries that resemble it — pure between-country signal standing
+in for the missing education block.
+
+Dropping those blocks **as columns** and refitting on the entry-cohort
+`[10%, 90%]` window triples the drop, from 9–11% to **26–29%**, landing
+within a few points of the zero-at-inference gate for LE and TFR:
+
+| Outcome | joint R² | no-edu, geography kept | no-edu, geography dropped | drop, geo kept | drop, geo dropped | zero-at-inference |
+|---|---:|---:|---:|---:|---:|---:|
+| LE | 0.675 | 0.615 | 0.487 | 8.9% | **27.7%** | 31% |
+| TFR | 0.767 | 0.679 | 0.570 | 11.5% | **25.7%** | 31% |
+| U5MR | 0.671 | 0.602 | 0.474 | 10.3% | **29.4%** | 52% |
+
+Source: `G1_GATE_INVESTIGATION.md` §7, 5 seeds × 3 targets, same cloud
+pipeline. So **26–29% is the fair training-time ablation number** and the
+one to quote. The 0.05–0.10 figure and the row-filtered-only 9–11% figure
+are both measuring geographic leakage, not education's substitutability.
+
+Two caveats worth carrying. The U5MR gap (29.4% against 52%) is
+unresolved; institutions, GDP, malaria and trade may capture more of
+U5MR's variance specifically, or the gate may still be inflated there.
+And the entry-cohort runs share the epoch-selection protocol described in
+caveat 1 above, so their absolute R² carries the same optimism — the drop
+*fractions* are more robust, since the bias lifts baseline and ablated fit
+together.
+
+The within-country identification lives in `scripts/residualization/`,
+not here.

@@ -187,13 +187,23 @@ below is run in it.
    countries only — the same models score 0.03 to 0.10 lower (LE −0.078,
    TFR −0.031, U5MR −0.095). The education gate is **not** weakened by the
    correction; on LE and TFR it strengthens slightly.
-2. *The G1 gate measures reliance, not incremental value.* Zeroing
-   education on a model trained with it drops R² by 0.25 to 0.40. Retraining
-   from scratch with no education at all drops it by only 0.05 to 0.10,
-   because region, latitude, GDP, institutions and disease burden are
-   collinear with education and partly substitute for it. Both numbers are
-   real and they answer different questions; the appendix's prose should
-   name which one it is quoting. The within-country identification lives in
+2. *The G1 gate measures reliance, not incremental value — and the fair
+   alternative is 26–29%, not the 5–10% an earlier revision of this file
+   reported.* Zeroing education on a model trained with it drops R² by 0.25
+   to 0.40; that is an upper bound on reliance, not a measure of
+   irreplaceability, so the methodology point stands. But a naive
+   retrain-without-education on the full feature set drops only 0.05 to
+   0.10, and that number is an artefact of geographic leakage. Region,
+   latitude, colonial origin and settler mortality are loaded once per
+   country and broadcast to every year, so their within-country variance is
+   exactly zero — they can carry no within-country signal at all, only
+   "which countries resemble this one," which is precisely what a
+   country-holdout test rewards. Dropping those blocks **as columns** and
+   refitting on the entry-cohort `[10%, 90%]` window triples the drop, to
+   **27.7% (LE), 25.7% (TFR), 29.4% (U5MR)** — within a few points of the
+   gate for LE and TFR (`G1_GATE_INVESTIGATION.md` §7, 5 seeds × 3
+   targets). Quote that number. The U5MR gap against the gate's 52% is
+   unresolved. The within-country identification lives in
    `residualization/`, not here.
 
 | Script | What it does |
