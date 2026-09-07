@@ -13,7 +13,18 @@ make setup     # Create venv + install dependencies
 make verify    # Check every paper claim against source data (~2 sec)
 ```
 
-Requires Python 3.9+. All source data is included.
+Requires Python 3.9+. All source data for `make verify` is included.
+
+The ML cross-check has its own entry point:
+
+```bash
+make ml-smoke   # ~2 min — checks the ML half is actually runnable
+```
+
+`make verify` does not depend on it. See
+[`scripts/ml/README.md`](scripts/ml/README.md) for what the ML scripts do,
+what `make ml-audit` found about the reported R², and the one optional
+data file that is not redistributed here.
 
 ## What's here
 
@@ -27,6 +38,10 @@ scripts/                 Analysis scripts + master verifier
   robustness/              Sensitivity and objection-blocking
   econometric_battery/     20 named panel-econometrics diagnostics
   ml/                      Transformer cross-check + designed falsification
+                             README.md               How to run it; two caveats on the R²
+                             smoke_test.py           `make ml-smoke` — is the ML half runnable?
+                             leakage_audit.py        `make ml-audit` — holdout-protocol audit
+                             conformal_intervals.py  `make ml-conformal` — prediction intervals
   tables/                  Regression tables
   figures/                 Figure generation
   wcde/                    WCDE long-run analysis

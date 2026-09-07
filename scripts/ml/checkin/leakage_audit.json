@@ -1,0 +1,386 @@
+{
+  "method": "Leakage audit of the parent-vantage UniversalTransformer. Protocol A reproduces the shipped protocol (checkpoint and early stopping selected on the held-out fold, that fold then reported as out-of-fold). Protocol B carves an inner validation split from training countries only and leaves the held-out fold untouched until scoring. Protocol C adds train-only refitting of the per-feature standardisation, which the shipped loader performs over the whole panel. Folds, seeds, features, architecture and hyperparameters are identical across protocols; only the selection signal varies.",
+  "protocol_definitions": {
+    "A": "shipped \u2014 early stop and checkpoint-select on the held-out fold",
+    "B": "nested \u2014 inner validation split from training countries only",
+    "C": "nested + per-feature standardisation refit on inner-training rows"
+  },
+  "n_folds": 5,
+  "inner_val_fraction": 0.2,
+  "n_seeds": 4,
+  "seeds": [
+    42,
+    142,
+    242,
+    342
+  ],
+  "hyperparameters": {
+    "d_model": 64,
+    "nhead": 4,
+    "num_layers": 2,
+    "ff_mult": 2,
+    "dropout": 0.25,
+    "batch_size": 256,
+    "epochs": 400,
+    "lr": 0.003,
+    "weight_decay": 0.001,
+    "patience": 60,
+    "seed": 42,
+    "num_threads": 2
+  },
+  "results": {
+    "LE": {
+      "horizon": 12,
+      "n_samples": 1477,
+      "n_countries": 185,
+      "protocols": {
+        "A": {
+          "baseline_r2_mean": 0.7507307827472687,
+          "baseline_r2_std": 0.00821354178684565,
+          "baseline_r2_per_seed": [
+            0.7631818056106567,
+            0.7526886463165283,
+            0.7416316270828247,
+            0.7454210519790649
+          ],
+          "mean_best_epoch": 40.85,
+          "g1_zero_at_inference": {
+            "ablated_r2_mean": 0.5174896419048309,
+            "ablated_r2_std": 0.0171341553174413,
+            "r2_drop_absolute_mean": 0.23324114084243774,
+            "r2_drop_fraction_mean": 0.3108288226230821,
+            "ablated_r2_per_seed": [
+              0.5470003485679626,
+              0.5104634165763855,
+              0.5070509910583496,
+              0.505443811416626
+            ]
+          },
+          "g1_retrain_without_education": {
+            "ablated_r2_mean": 0.7087885737419128,
+            "ablated_r2_std": 0.027948846710732972,
+            "r2_drop_absolute_mean": 0.041942209005355835,
+            "r2_drop_fraction_mean": 0.05588595714625272,
+            "ablated_r2_per_seed": [
+              0.7419791221618652,
+              0.6806324124336243,
+              0.7309442162513733,
+              0.6815985441207886
+            ]
+          }
+        },
+        "B": {
+          "baseline_r2_mean": 0.6724452972412109,
+          "baseline_r2_std": 0.018130684315343763,
+          "baseline_r2_per_seed": [
+            0.6852619647979736,
+            0.6950829029083252,
+            0.6525208950042725,
+            0.6569154262542725
+          ],
+          "mean_best_epoch": 66.15,
+          "g1_zero_at_inference": {
+            "ablated_r2_mean": 0.4205193370580673,
+            "ablated_r2_std": 0.03984973123118605,
+            "r2_drop_absolute_mean": 0.2519259601831436,
+            "r2_drop_fraction_mean": 0.3728418923190514,
+            "ablated_r2_per_seed": [
+              0.3626304864883423,
+              0.4048617482185364,
+              0.4623515009880066,
+              0.45223361253738403
+            ]
+          },
+          "g1_retrain_without_education": {
+            "ablated_r2_mean": 0.6184037923812866,
+            "ablated_r2_std": 0.023908503872121144,
+            "r2_drop_absolute_mean": 0.054041504859924316,
+            "r2_drop_fraction_mean": 0.08011442357314738,
+            "ablated_r2_per_seed": [
+              0.6453627943992615,
+              0.6192789673805237,
+              0.6286894083023071,
+              0.5802839994430542
+            ]
+          }
+        },
+        "C": {
+          "baseline_r2_mean": 0.6693552881479263,
+          "baseline_r2_std": 0.022393414971038212,
+          "baseline_r2_per_seed": [
+            0.6807354688644409,
+            0.6943342089653015,
+            0.6339796185493469,
+            0.668371856212616
+          ],
+          "mean_best_epoch": 60.95,
+          "g1_zero_at_inference": {
+            "ablated_r2_mean": 0.39812423288822174,
+            "ablated_r2_std": 0.04287002064817314,
+            "r2_drop_absolute_mean": 0.2712310552597046,
+            "r2_drop_fraction_mean": 0.4026846950655511,
+            "ablated_r2_per_seed": [
+              0.3411559462547302,
+              0.3804174065589905,
+              0.4578699469566345,
+              0.41305363178253174
+            ]
+          },
+          "g1_retrain_without_education": {
+            "ablated_r2_mean": 0.6212527900934219,
+            "ablated_r2_std": 0.02093530317303726,
+            "r2_drop_absolute_mean": 0.048102498054504395,
+            "r2_drop_fraction_mean": 0.07113670908928757,
+            "ablated_r2_per_seed": [
+              0.6548373699188232,
+              0.618594765663147,
+              0.6141541004180908,
+              0.5974249243736267
+            ]
+          }
+        }
+      },
+      "optimism_A_minus_B": {
+        "baseline_r2": 0.07828548550605774,
+        "g1_zero_at_inference_drop_absolute": -0.01868481934070587,
+        "g1_retrain_without_education_drop_absolute": -0.012099295854568481
+      }
+    },
+    "TFR": {
+      "horizon": 5,
+      "n_samples": 1846,
+      "n_countries": 185,
+      "protocols": {
+        "A": {
+          "baseline_r2_mean": 0.8536402136087418,
+          "baseline_r2_std": 0.004739722048759836,
+          "baseline_r2_per_seed": [
+            0.8486788272857666,
+            0.8561688661575317,
+            0.8601429462432861,
+            0.8495702147483826
+          ],
+          "mean_best_epoch": 33.550000000000004,
+          "g1_zero_at_inference": {
+            "ablated_r2_mean": 0.5681986659765244,
+            "ablated_r2_std": 0.011531460576569057,
+            "r2_drop_absolute_mean": 0.2854415476322174,
+            "r2_drop_fraction_mean": 0.33436711620307225,
+            "ablated_r2_per_seed": [
+              0.5745882987976074,
+              0.5834527611732483,
+              0.5608522891998291,
+              0.5539013147354126
+            ]
+          },
+          "g1_retrain_without_education": {
+            "ablated_r2_mean": 0.7882110625505447,
+            "ablated_r2_std": 0.015648817236294982,
+            "r2_drop_absolute_mean": 0.06542915105819702,
+            "r2_drop_fraction_mean": 0.07671135929212042,
+            "ablated_r2_per_seed": [
+              0.7662067413330078,
+              0.8038788437843323,
+              0.8020983934402466,
+              0.7806602716445923
+            ]
+          }
+        },
+        "B": {
+          "baseline_r2_mean": 0.823140487074852,
+          "baseline_r2_std": 0.0038330861660452803,
+          "baseline_r2_per_seed": [
+            0.8223819732666016,
+            0.8201707601547241,
+            0.8296103477478027,
+            0.8203988671302795
+          ],
+          "mean_best_epoch": 26.8,
+          "g1_zero_at_inference": {
+            "ablated_r2_mean": 0.5316023528575897,
+            "ablated_r2_std": 0.03294380155529951,
+            "r2_drop_absolute_mean": 0.29153813421726227,
+            "r2_drop_fraction_mean": 0.35409318244531934,
+            "ablated_r2_per_seed": [
+              0.5012669563293457,
+              0.5209020972251892,
+              0.5170168876647949,
+              0.587223470211029
+            ]
+          },
+          "g1_retrain_without_education": {
+            "ablated_r2_mean": 0.7276642620563507,
+            "ablated_r2_std": 0.012638881420156876,
+            "r2_drop_absolute_mean": 0.09547622501850128,
+            "r2_drop_fraction_mean": 0.11600731283358363,
+            "ablated_r2_per_seed": [
+              0.7301421165466309,
+              0.7063330411911011,
+              0.7372907400131226,
+              0.7368911504745483
+            ]
+          }
+        },
+        "C": {
+          "baseline_r2_mean": 0.8186390846967697,
+          "baseline_r2_std": 0.008139042608330479,
+          "baseline_r2_per_seed": [
+            0.8167041540145874,
+            0.8112252354621887,
+            0.8323292136192322,
+            0.8142977356910706
+          ],
+          "mean_best_epoch": 27.200000000000003,
+          "g1_zero_at_inference": {
+            "ablated_r2_mean": 0.5229326486587524,
+            "ablated_r2_std": 0.042625803104294924,
+            "r2_drop_absolute_mean": 0.2957064360380173,
+            "r2_drop_fraction_mean": 0.36132921702968335,
+            "ablated_r2_per_seed": [
+              0.4965941309928894,
+              0.4704040288925171,
+              0.5435932278633118,
+              0.5811392068862915
+            ]
+          },
+          "g1_retrain_without_education": {
+            "ablated_r2_mean": 0.7253498136997223,
+            "ablated_r2_std": 0.0074725163948148945,
+            "r2_drop_absolute_mean": 0.09328927099704742,
+            "r2_drop_fraction_mean": 0.11392954006488315,
+            "ablated_r2_per_seed": [
+              0.7238167524337769,
+              0.728132963180542,
+              0.7350319623947144,
+              0.714417576789856
+            ]
+          }
+        }
+      },
+      "optimism_A_minus_B": {
+        "baseline_r2": 0.03049972653388977,
+        "g1_zero_at_inference_drop_absolute": -0.006096586585044861,
+        "g1_retrain_without_education_drop_absolute": -0.03004707396030426
+      }
+    },
+    "U5MR": {
+      "horizon": 12,
+      "n_samples": 1477,
+      "n_countries": 185,
+      "protocols": {
+        "A": {
+          "baseline_r2_mean": 0.7579315304756165,
+          "baseline_r2_std": 0.019869026523578685,
+          "baseline_r2_per_seed": [
+            0.7721652388572693,
+            0.7672649025917053,
+            0.768639087677002,
+            0.7236568927764893
+          ],
+          "mean_best_epoch": 33.0,
+          "g1_zero_at_inference": {
+            "ablated_r2_mean": 0.30920183658599854,
+            "ablated_r2_std": 0.05866297687586316,
+            "r2_drop_absolute_mean": 0.4487296938896179,
+            "r2_drop_fraction_mean": 0.5932409702495731,
+            "ablated_r2_per_seed": [
+              0.3216499090194702,
+              0.280911386013031,
+              0.39676153659820557,
+              0.23748451471328735
+            ]
+          },
+          "g1_retrain_without_education": {
+            "ablated_r2_mean": 0.6891701519489288,
+            "ablated_r2_std": 0.026101852445300607,
+            "r2_drop_absolute_mean": 0.06876137852668762,
+            "r2_drop_fraction_mean": 0.0896500927705793,
+            "ablated_r2_per_seed": [
+              0.7112913131713867,
+              0.6488049626350403,
+              0.6834579110145569,
+              0.7131264209747314
+            ]
+          }
+        },
+        "B": {
+          "baseline_r2_mean": 0.6627967655658722,
+          "baseline_r2_std": 0.02950421765253278,
+          "baseline_r2_per_seed": [
+            0.7018065452575684,
+            0.6298017501831055,
+            0.680446982383728,
+            0.6391317844390869
+          ],
+          "mean_best_epoch": 21.75,
+          "g1_zero_at_inference": {
+            "ablated_r2_mean": 0.263934850692749,
+            "ablated_r2_std": 0.0077748262807512975,
+            "r2_drop_absolute_mean": 0.39886191487312317,
+            "r2_drop_fraction_mean": 0.6011309711883781,
+            "ablated_r2_per_seed": [
+              0.260026752948761,
+              0.25317907333374023,
+              0.2725546360015869,
+              0.26997894048690796
+            ]
+          },
+          "g1_retrain_without_education": {
+            "ablated_r2_mean": 0.575964167714119,
+            "ablated_r2_std": 0.0276235401482162,
+            "r2_drop_absolute_mean": 0.08683259785175323,
+            "r2_drop_fraction_mean": 0.13110192921486327,
+            "ablated_r2_per_seed": [
+              0.616146981716156,
+              0.5425698757171631,
+              0.5848042964935303,
+              0.5603355169296265
+            ]
+          }
+        },
+        "C": {
+          "baseline_r2_mean": 0.6615318357944489,
+          "baseline_r2_std": 0.034178361253161975,
+          "baseline_r2_per_seed": [
+            0.6993779540061951,
+            0.6206721067428589,
+            0.691023051738739,
+            0.6350542306900024
+          ],
+          "mean_best_epoch": 23.599999999999998,
+          "g1_zero_at_inference": {
+            "ablated_r2_mean": 0.2621673345565796,
+            "ablated_r2_std": 0.015596717059988226,
+            "r2_drop_absolute_mean": 0.39936450123786926,
+            "r2_drop_fraction_mean": 0.6034678094176471,
+            "ablated_r2_per_seed": [
+              0.25932061672210693,
+              0.24204111099243164,
+              0.28581899404525757,
+              0.2614886164665222
+            ]
+          },
+          "g1_retrain_without_education": {
+            "ablated_r2_mean": 0.5836077928543091,
+            "ablated_r2_std": 0.02814809487387866,
+            "r2_drop_absolute_mean": 0.07792404294013977,
+            "r2_drop_fraction_mean": 0.11759933294503291,
+            "ablated_r2_per_seed": [
+              0.6069895029067993,
+              0.5490216016769409,
+              0.615321159362793,
+              0.5630989074707031
+            ]
+          }
+        }
+      },
+      "optimism_A_minus_B": {
+        "baseline_r2": 0.09513476490974426,
+        "g1_zero_at_inference_drop_absolute": 0.04986777901649475,
+        "g1_retrain_without_education_drop_absolute": -0.018071219325065613
+      }
+    }
+  },
+  "total_elapsed_sec": 3341.891767024994,
+  "script": "scripts/ml/leakage_audit.py"
+}

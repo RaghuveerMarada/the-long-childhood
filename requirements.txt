@@ -6,6 +6,7 @@ scipy>=1.9
 statsmodels>=0.13
 linearmodels>=6.0
 xlrd>=2.0.1
+openpyxl>=3.1
 anthropic>=0.104
 torch>=2.0
 scikit-learn>=1.3

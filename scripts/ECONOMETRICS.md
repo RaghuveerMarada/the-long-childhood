@@ -176,6 +176,36 @@ generation enters through the cohort inputs, each outcome through its own
 biological lag. This is the parent-vantage construction, and every diagnostic
 below is run in it.
 
+**Two caveats attach to every R² in this section**, both measured in
+`leakage_audit.py` (`make ml-audit`) and both documented in
+[`scripts/ml/README.md`](ml/README.md):
+
+1. *The reported out-of-fold R² is selected on the held-out fold.* The
+   trainer early-stops and checkpoint-selects by validation R² measured on
+   the held-out countries, then reports that fold's score as out-of-fold.
+   Under a nested protocol — inner validation carved from training
+   countries only — the same models score 0.03 to 0.10 lower (LE −0.078,
+   TFR −0.031, U5MR −0.095). The education gate is **not** weakened by the
+   correction; on LE and TFR it strengthens slightly.
+2. *The G1 gate measures reliance, not incremental value — and the fair
+   alternative is 26–29%, not the 5–10% an earlier revision of this file
+   reported.* Zeroing education on a model trained with it drops R² by 0.25
+   to 0.40; that is an upper bound on reliance, not a measure of
+   irreplaceability, so the methodology point stands. But a naive
+   retrain-without-education on the full feature set drops only 0.05 to
+   0.10, and that number is an artefact of geographic leakage. Region,
+   latitude, colonial origin and settler mortality are loaded once per
+   country and broadcast to every year, so their within-country variance is
+   exactly zero — they can carry no within-country signal at all, only
+   "which countries resemble this one," which is precisely what a
+   country-holdout test rewards. Dropping those blocks **as columns** and
+   refitting on the entry-cohort `[10%, 90%]` window triples the drop, to
+   **27.7% (LE), 25.7% (TFR), 29.4% (U5MR)** — within a few points of the
+   gate for LE and TFR (`G1_GATE_INVESTIGATION.md` §7, 5 seeds × 3
+   targets). Quote that number. The U5MR gap against the gate's 52% is
+   unresolved. The within-country identification lives in
+   `residualization/`, not here.
+
 | Script | What it does |
 |---|---|
 | `data_loader.py` | Assembles the country × year panel. Each sample is one (country, T); features are the trajectory over [T-15, T-10, T-5, T]; targets are LE/U5MR at T+12 and TFR at T+5, with cohort inputs at T−28/56/84. |
@@ -189,8 +219,13 @@ below is run in it.
 | `chapter9/spec_curve.py` | Five-method spec curve (OLS/ridge/lasso/RF/GBM) per outcome in parent vantage → `spec_curve_parent.json`. |
 | `aggregate_bloc_holdout.py` | Designed falsification of the "hollow education" thesis. Holds out the eight Soviet peripheral republics (Caucasus + Central Asia); residuals on TFR (+1.2 births) and U5MR (+34/1000) come in directionally and substantially as predicted by §9. Pinned to the legacy 25-year grid because it reads post-1990 Soviet republics the 28-year horizon would starve. |
 | `residual_atlas.py` | Layer 2: per-country residual atlas. Misfits are diagnostic — the strongest model is one with small, structured residuals that sort into mechanism-consistent buckets. |
-| `chapter9/dml_parent.py` | Double machine-learning causal-style estimate: education partialled against every other feature, cross-fitted, at the biological lags. Per-level effect ≈ +4.85 years life expectancy (95% CI [4.63, 5.56]), −0.94 children, −36.5 under-five deaths/1000; every interval excludes zero (`dml_parent.json`). |
+| `chapter9/dml_parent.py` | Double machine-learning causal-style estimate: education partialled against every other feature, cross-fitted, at the biological lags. Per-level effect ≈ +4.85 years life expectancy, −0.94 children, −36.5 under-five deaths/1000 (`dml_parent.json`). The bracketed range in that file is the spread of five seed estimates, not a confidence interval; for country-clustered cross-fitting and a real standard error see `chapter9/dml_parent_clustered.py`, which keeps the sign and significance of all three effects on intervals roughly five times wider. |
 | `chapter9/*` (walk-forward) | Train-on-past, predict-future: the transformer is trained only on cohorts completed before a cutoff and evaluated on the later era. Held-out R² rises from ≈0.66 (life expectancy, 1975 cutoff) to ≈0.88–0.91 by the 2000 cutoff (`chapter9_parent_battery.json` → `walk_forward`). Cutoffs outside 1975–2000 are omitted: at the biological horizons the panel ends ≈2008, so a 1965 cutoff starves the training side and a 2005 cutoff starves the held-out side. |
+| `smoke_test.py` | Wiring check (`make ml-smoke`): imports, required inputs, panel shapes, one forward pass. Run it first. |
+| `leakage_audit.py` | Holdout-protocol audit (`make ml-audit`). Re-estimates the headline OOF R² under a nested protocol, because the shipped trainer early-stops on the held-out fold and then reports that fold. Also separates the two education gates: zeroing education at inference vs retraining without it. `leakage_audit.json`. **Read this before quoting any R² from `ml/`.** |
+| `conformal_intervals.py` | Split-conformal prediction intervals with coverage measured on held-out countries (`make ml-conformal`). Supplies the uncertainty the counterfactual and per-country numbers otherwise lack. `conformal_intervals.json`. |
+| `chapter9/dml_parent_clustered.py` | DML with country-level cross-fitting and an analytic country-clustered standard error, run beside the shipped row-level configuration. The `theta_ci95` in `dml_parent.json` is the spread of five seed estimates, not a confidence interval. `dml_parent_clustered.json`. |
+| `fetch_co2.py` | Downloads the optional CO2 series (OWID, CC BY 4.0) that the feature vector and the CO2 placebo use. Not redistributed here; the loader degrades to an all-NaN CO2 column without it. |
 
 ML results are written to `scripts/ml/checkin/`. The make-verify ML numbers
 come from `universal_evidence_parent_lag.json` and `spec_curve_parent.json`;
