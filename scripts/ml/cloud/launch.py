@@ -279,6 +279,11 @@ def cmd_panel(args):
           f"{summary['total_cpu_hours']:.1f} CPU-hr, "
           f"est cost spot ${cost_spot:.2f}")
 
+    if args.only:
+        wanted = set(args.only.split(","))
+        jobs = [j for j in jobs if j["id"] in wanted or j["kind"] in wanted]
+        print(f"Filtered to {len(jobs)} jobs")
+
     if not args.skip_stage:
         stage_repo()
     else:
@@ -290,11 +295,6 @@ def cmd_panel(args):
             print(f"  {j['id']:<40} {j['kind']:<25} "
                   f"gpu={j['est_gpu_hours']:.2f} cpu={j['est_cpu_hours']:.2f}")
         return
-
-    if args.only:
-        wanted = set(args.only.split(","))
-        jobs = [j for j in jobs if j["id"] in wanted or j["kind"] in wanted]
-        print(f"Filtered to {len(jobs)} jobs")
 
     # Parse zone list for round-robin VM placement
     zones = [z.strip() for z in args.zones.split(",") if z.strip()]

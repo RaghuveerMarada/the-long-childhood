@@ -10,12 +10,5 @@ linearmodels>=6.0
 xlrd>=2.0.1
 openpyxl>=3.1
 anthropic>=0.104
-
-# ML cross-check (scripts/ml/, `make ml`). Previously undeclared: a clean
-# clone that ran `make setup` could not execute any ML script.
-#   torch        — UniversalTransformer (scripts/ml/universal_transformer.py)
-#   scikit-learn — spec curve, DML, conformal, LOO (scripts/ml/chapter9/)
-# CPU wheels are enough; nothing here needs a GPU. The cloud battery
-# under scripts/ml/cloud/ is the only GPU path and is optional.
 torch>=2.0
-scikit-learn>=1.2
+scikit-learn>=1.3

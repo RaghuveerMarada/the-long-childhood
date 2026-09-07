@@ -73,6 +73,8 @@ LONGRUN_SEEDS = list(range(42, 52))   # 10 seeds
 
 BARROLEE_SEEDS = list(range(42, 57))  # 15 seeds for BL replication
 
+ENTRY_COHORT_REFIT_SEEDS = list(range(42, 47))  # 5 seeds, diagnostic tier
+
 OPTUNA_TRIALS = 500
 OPTUNA_SEEDS = [42]   # one Optuna search; trials internally varied
 # Split the 500-trial budget across independent studies (distinct seeds),
@@ -533,13 +535,60 @@ def big_run_jobs():
 
 
 # Alias used by launch.py: the Panel job set is the full big run.
+def entry_cohort_refit_jobs():
+    """Diagnostic tier: fair G1-gate refit (education excluded at TRAINING
+    time, not zeroed at inference) restricted to the entry-cohort [10%, 90%]
+    expansion window. 5 seeds x 3 targets = 15 GPU jobs.
+
+    See scripts/diagnostics/G1_GATE_INVESTIGATION.md. Not part of the
+    Chapter 9 big run; ids are prefixed "entrycohort_" so `launch.py panel
+    --only entry_cohort_refit` selects exactly this set."""
+    out = []
+    for t in ("LE", "TFR", "U5MR"):
+        for s in ENTRY_COHORT_REFIT_SEEDS:
+            out.append({
+                "id": f"entrycohort_{t.lower()}_s{s}",
+                "kind": "entry_cohort_refit",
+                "params": {"target": t, "seed": s},
+                # two full single-target retrains (5-fold each) on a
+                # smaller (entry-cohort-restricted) sample than the joint
+                # transformer_single job; same order of magnitude cost.
+                "est_gpu_hours": 0.4,
+                "est_cpu_hours": 0.0,
+            })
+    return out
+
+
+def entry_cohort_no_geo_jobs():
+    """Follow-up to entry_cohort_refit_jobs (G1_GATE_INVESTIGATION.md SS6):
+    same entry-cohort-restricted no_education refit, with the time-invariant
+    ("geography") broader-feature blocks also dropped from the feature set
+    (not just row-filtered). Same 5 seeds x 3 targets. Ids prefixed
+    "entrycohortgeo_" so `launch.py panel --only entry_cohort_no_geo`
+    selects exactly this set."""
+    out = []
+    for t in ("LE", "TFR", "U5MR"):
+        for s in ENTRY_COHORT_REFIT_SEEDS:
+            out.append({
+                "id": f"entrycohortgeo_{t.lower()}_s{s}",
+                "kind": "entry_cohort_no_geo",
+                "params": {"target": t, "seed": s},
+                "est_gpu_hours": 0.2,   # one retrain, not two
+                "est_cpu_hours": 0.0,
+            })
+    return out
+
+
 def panel_jobs():
     # big_run_jobs() is the original joint big run. The parent-vantage recast
     # jobs are appended so launch.py can reach them; every launch of the recast
     # filters with `--only parent_`, so they are never selected unless asked
     # for. (big_run_manifest.json is written from big_run_jobs() directly in
-    # main(), so it is unaffected by this append.)
-    return big_run_jobs() + parent_vantage_recast_jobs()
+    # main(), so it is unaffected by this append.) entry_cohort_refit_jobs()
+    # and entry_cohort_no_geo_jobs() are the same pattern: appended so
+    # launch.py can reach them, only ever selected via their own --only kind.
+    return (big_run_jobs() + parent_vantage_recast_jobs()
+            + entry_cohort_refit_jobs() + entry_cohort_no_geo_jobs())
 
 
 def manifest_summary(jobs):

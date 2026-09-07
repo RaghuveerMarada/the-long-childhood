@@ -22,6 +22,7 @@ REPO_ROOT = os.path.dirname(os.path.dirname(ML_DIR))
 sys.path.insert(0, os.path.join(REPO_ROOT, "scripts"))
 sys.path.insert(0, ML_DIR)
 sys.path.insert(0, os.path.join(ML_DIR, "chapter9"))
+sys.path.insert(0, os.path.join(REPO_ROOT, "scripts", "diagnostics"))
 
 
 def run_smoke(params, out_dir):
@@ -169,6 +170,155 @@ def run_transformer_single(params, out_dir):
     with open(os.path.join(out_dir, "result.json"), "w") as f:
         _json.dump(out, f, indent=2, default=float)
     # Save checkpoints into output
+    ckpt_src = os.path.join(ML_DIR, "checkpoints")
+    ckpt_dst = os.path.join(out_dir, "checkpoints")
+    os.makedirs(ckpt_dst, exist_ok=True)
+    for fname in os.listdir(ckpt_src):
+        if fname.startswith(ckpt_prefix):
+            shutil.copy(os.path.join(ckpt_src, fname), ckpt_dst)
+
+
+def run_entry_cohort_refit(params, out_dir):
+    """Fair G1-gate refit: education excluded at TRAINING time (mode=
+    "no_education", not zeroed-at-inference on a joint-trained model), on
+    rows restricted to the entry-cohort [10%, 90%] expansion window
+    (CANONICAL.md SS14) rather than the full country-year universe.
+
+    See scripts/diagnostics/G1_GATE_INVESTIGATION.md. Restricting to the
+    transition window matters because outside it a country's own education
+    isn't moving (pre-expansion or ceiling-saturated), and because the full
+    universe lets time-invariant / regionally-diffusing features (region,
+    latitude, institutions) substitute for education via between-country
+    resemblance rather than any within-country mechanism.
+
+    params: {"target": "LE"|"TFR"|"U5MR", "seed": <int>}
+    """
+    import json as _json
+    import shutil
+    import sys as _sys
+    _sys.path.insert(0, ML_DIR)
+    from universal_transformer import DEFAULT_HP
+    from run_universal_evidence_parent_lag import _run_5fold_single
+    from data_loader_parent_lag import load_parent_lag_panels, PARENT_LAG_HORIZONS
+    from g1_gate_entry_cohort_refit import (
+        entry_cohort_mask, subset_panel, ENTRY_LOWER, ENTRY_UPPER,
+    )
+
+    target = params.get("target")
+    seed = int(params.get("seed", 42))
+    if target not in ("LE", "TFR", "U5MR"):
+        raise ValueError(f"unknown target: {target}")
+
+    hp = dict(DEFAULT_HP)
+    hp["seed"] = seed
+    hp["verbose"] = False
+
+    panels_joint = load_parent_lag_panels(mode="joint", verbose=False)
+    panels_no_edu = load_parent_lag_panels(mode="no_education", verbose=False)
+    panel_j = panels_joint[target]
+    panel_n = panels_no_edu[target]
+
+    mask = entry_cohort_mask(panel_j)   # identical row universe/order in both modes
+    sub_j = subset_panel(panel_j, mask)
+    sub_n = subset_panel(panel_n, mask)
+
+    ckpt_prefix_j = f"entrycohort_joint_{target.lower()}_s{seed}"
+    ckpt_prefix_n = f"entrycohort_noedu_{target.lower()}_s{seed}"
+    summary_joint = _run_5fold_single(sub_j, hp, ckpt_prefix=ckpt_prefix_j, verbose=True)
+    summary_no_edu = _run_5fold_single(sub_n, hp, ckpt_prefix=ckpt_prefix_n, verbose=True)
+
+    r2_j = summary_joint["overall_r2_oof"][0]
+    r2_n = summary_no_edu["overall_r2_oof"][0]
+    drop_frac = (r2_j - r2_n) / max(abs(r2_j), 1e-12)
+
+    out = {
+        "kind": "entry_cohort_refit",
+        "params": params,
+        "target": target,
+        "horizon": PARENT_LAG_HORIZONS[target],
+        "entry_cohort_window": [ENTRY_LOWER, ENTRY_UPPER],
+        "n_full_panel": int(panel_j["y"].shape[0]),
+        "n_entry_cohort": int(mask.sum()),
+        "joint_with_education": summary_joint,
+        "no_education_refit": summary_no_edu,
+        "r2_drop_fraction": drop_frac,
+    }
+    with open(os.path.join(out_dir, "result.json"), "w") as f:
+        _json.dump(out, f, indent=2, default=float)
+    ckpt_src = os.path.join(ML_DIR, "checkpoints")
+    ckpt_dst = os.path.join(out_dir, "checkpoints")
+    os.makedirs(ckpt_dst, exist_ok=True)
+    for fname in os.listdir(ckpt_src):
+        if fname.startswith(ckpt_prefix_j) or fname.startswith(ckpt_prefix_n):
+            shutil.copy(os.path.join(ckpt_src, fname), ckpt_dst)
+
+
+def run_entry_cohort_no_geo(params, out_dir):
+    """Follow-up to run_entry_cohort_refit (G1_GATE_INVESTIGATION.md SS6):
+    education excluded at training time (mode="no_education") AND all
+    time-invariant ("geography") broader-feature blocks also zeroed out --
+    not just filtered by row -- while institutions (Polity2), GDP, and the
+    other time-varying broader features stay in. Same entry-cohort [10,90]
+    row restriction, same country-holdout 5-fold.
+
+    This isolates how much of the no-education refit's R² is carried by
+    time-invariant, purely-between-country features (region, latitude,
+    colonizer, religion, colonial binary, settler mortality) versus by
+    institutions/GDP/other time-varying features. Compare this job's R²
+    against the "no_education_refit" R² from run_entry_cohort_refit (same
+    target/seed) computed offline -- this job does not repeat that run.
+
+    params: {"target": "LE"|"TFR"|"U5MR", "seed": <int>}
+    """
+    import json as _json
+    import shutil
+    import sys as _sys
+    _sys.path.insert(0, ML_DIR)
+    from universal_transformer import DEFAULT_HP
+    from run_universal_evidence_parent_lag import _run_5fold_single
+    from data_loader import feature_ablation
+    from data_loader_parent_lag import load_parent_lag_panels, PARENT_LAG_HORIZONS
+    from g1_gate_entry_cohort_refit import (
+        entry_cohort_mask, subset_panel, ENTRY_LOWER, ENTRY_UPPER,
+        GEOGRAPHY_TIME_INVARIANT_GROUPS,
+    )
+
+    target = params.get("target")
+    seed = int(params.get("seed", 42))
+    if target not in ("LE", "TFR", "U5MR"):
+        raise ValueError(f"unknown target: {target}")
+
+    hp = dict(DEFAULT_HP)
+    hp["seed"] = seed
+    hp["verbose"] = False
+
+    # The entry-cohort mask reads the panel's own lower-sec-completion
+    # feature, which mode="no_education" has already zeroed -- compute the
+    # mask from the joint (real-valued) panel, same as run_entry_cohort_refit,
+    # then apply it to the no_education panel's rows.
+    panels_joint = load_parent_lag_panels(mode="joint", verbose=False)
+    panels_no_edu = load_parent_lag_panels(mode="no_education", verbose=False)
+    panel_j = panels_joint[target]
+    panel_n = panels_no_edu[target]
+    mask = entry_cohort_mask(panel_j)
+    sub_n = subset_panel(panel_n, mask)
+    sub_n_no_geo = feature_ablation(sub_n, drop_groups=GEOGRAPHY_TIME_INVARIANT_GROUPS)
+
+    ckpt_prefix = f"entrycohort_noedu_nogeo_{target.lower()}_s{seed}"
+    summary = _run_5fold_single(sub_n_no_geo, hp, ckpt_prefix=ckpt_prefix, verbose=True)
+
+    out = {
+        "kind": "entry_cohort_no_geo",
+        "params": params,
+        "target": target,
+        "horizon": PARENT_LAG_HORIZONS[target],
+        "entry_cohort_window": [ENTRY_LOWER, ENTRY_UPPER],
+        "dropped_groups": GEOGRAPHY_TIME_INVARIANT_GROUPS,
+        "n_entry_cohort": int(mask.sum()),
+        "no_education_no_geography_refit": summary,
+    }
+    with open(os.path.join(out_dir, "result.json"), "w") as f:
+        _json.dump(out, f, indent=2, default=float)
     ckpt_src = os.path.join(ML_DIR, "checkpoints")
     ckpt_dst = os.path.join(out_dir, "checkpoints")
     os.makedirs(ckpt_dst, exist_ok=True)
@@ -1719,6 +1869,8 @@ DISPATCH = {
     "residual_atlas": run_residual_atlas,
     "transformer": run_transformer,
     "transformer_single": run_transformer_single,
+    "entry_cohort_refit": run_entry_cohort_refit,
+    "entry_cohort_no_geo": run_entry_cohort_no_geo,
     "transformer_walk_forward": run_transformer_walk_forward,
     "transformer_strat": run_transformer_strat,
     "loo_transformer": run_loo_transformer,
